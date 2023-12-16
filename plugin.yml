@@ -1,0 +1,5 @@
+name: Backpack
+author: ShadowMikado
+api: [5.0.0]
+main: ShadowMikado\Backpack\Main
+version: 1.0.0
