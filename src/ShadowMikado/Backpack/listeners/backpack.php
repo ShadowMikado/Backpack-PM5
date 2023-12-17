@@ -2,70 +2,80 @@
 
 namespace ShadowMikado\Backpack\listeners;
 
-use muqsit\invmenu\InvMenu;
-use muqsit\invmenu\transaction\InvMenuTransaction;
-use muqsit\invmenu\transaction\InvMenuTransactionResult;
-use pocketmine\event\inventory\InventoryCloseEvent;
 use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerItemUseEvent;
-use pocketmine\inventory\Inventory;
-use pocketmine\inventory\transaction\InventoryTransaction;
 use pocketmine\item\Item;
 use pocketmine\item\StringToItemParser;
 use pocketmine\item\VanillaItems;
 use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\nbt\tag\ListTag;
 use pocketmine\player\Player;
+use pocketmine\utils\TextFormat;
+use muqsit\invmenu\{inventory\InvMenuInventory,
+    InvMenu,
+    transaction\InvMenuTransaction,
+    transaction\InvMenuTransactionResult};
+use pocketmine\world\sound\{NoteInstrument, NoteSound};
 use ShadowMikado\Backpack\Main;
 
 class backpack implements Listener
 {
-
-
     public function onUse(PlayerItemUseEvent $e)
     {
         $player = $e->getPlayer();
 
         if ($this->hasBackpackPermission($player) && $this->isBackpack($e->getItem())) {
+            $backpack = $e->getItem();
             $bitem = $e->getItem();
-
             $menu = InvMenu::create(InvMenu::TYPE_CHEST);
-            $menu->setName("{$player->getName()}'s backpack");
 
-            $menu->setInventoryCloseListener(
-                function (Player $player, Inventory $inventory) use ($bitem) {
-                    $bitem2 = clone $bitem;
-                    $bitem->pop();
-                    echo "poped";
+            $menu->setName(str_replace("{player}", $player->getName(), Main::$config->getNested("ui_configuration.display_name")));
+            $menu->setListener(function (InvMenuTransaction $transaction) use ($bitem): InvMenuTransactionResult {
+                if ($this->isBackpack($transaction->getItemClickedWith())) {
+                    $transaction->getPlayer()->getWorld()->addSound($transaction->getPlayer()->getPosition(), new NoteSound(NoteInstrument::GUITAR(), 0));
+                    $transaction->getPlayer()->sendPopup(Main::$config->getNested("messages.item_disabled"));
+                    return $transaction->discard();
+                } else {
+                    return $transaction->continue();
+                }
+            });
 
-                    $inv = $inventory;
-                    if ($this->isBackpack($bitem)) {
-                        $contents = $inv->getContents();
+            $menu->setInventoryCloseListener(function (Player $player, InvMenuInventory $inventory) use ($bitem) {
+                echo $bitem->getCustomName();
+                if ($this->isBackpack($bitem)) {
+                    $contents = $inventory->getContents(false);
+                    $tags = [];
+                    $lores = [TextFormat::RESET . TextFormat::GRAY . "Content:" . TextFormat::RESET];
 
-                        $tags = [];
+                    if (empty($contents)) {
+                        $lores[] = Main::$config->getNested("item_configuration.lore_empty");
+                    }
 
-                        foreach ($contents as $slot => $item) {
-                            $nbt = $item->nbtSerialize($slot);
-                            $tags[] = $nbt;
-                        }
+                    foreach ($contents as $slot => $item) {
+                        $tags[] = $item->nbtSerialize($slot);
+                        $lores[] = str_replace(["{item}", "{count}"], [$item->getName(), $item->getCount()], Main::$config->getNested("item_configuration.lore_content"));
+                    }
 
-                        $taglist = CompoundTag::create()->setTag("items", new ListTag($tags));
-                        $bitem2->setNamedTag($taglist);
+                    $taglist = CompoundTag::create()->setTag("items", new ListTag($tags));
+                    $bitem->setNamedTag($taglist);
+                    $bitem->setCustomName(str_replace("{player}", $player->getName(), Main::$config->getNested("item_configuration.display_name_after_use")));
+                    $bitem->setLore($lores);
 
-                        $player->getInventory()->setItemInHand($bitem2);
+                    if (count($player->getInventory()->getContents()) >= 36) {
+                        $player->getWorld()->dropItem($player->getPosition(), $bitem);
+                        $player->sendPopup(Main::$config->getNested("messages.backpack_dropped"));
+                    } else {
+                        $player->getInventory()->addItem($bitem);
                     }
                 }
-            );
+            });
 
-            $backpack = $e->getItem();
             $contents = [];
-
-
             $tlist = $backpack->getNamedTag()->getListTag("items");
+
             if (!is_null($tlist)) {
                 foreach ($tlist as $tags) {
                     $item = Item::nbtDeserialize($tags);
-
                     $contents[] = $item;
                 }
             } else {
@@ -73,10 +83,8 @@ class backpack implements Listener
             }
 
             $menu->getInventory()->setContents($contents);
-
             $menu->send($player);
-
-
+            $player->getInventory()->setItemInHand(VanillaItems::AIR());
         }
     }
 
@@ -84,7 +92,6 @@ class backpack implements Listener
     {
         $permissionEnabled = Main::$config->getNested("permission.enabled");
         $permissionName = Main::$config->getNested("permission.name");
-
         return $permissionEnabled ? $player->hasPermission($permissionName) : true;
     }
 
