@@ -1,4 +1,4 @@
-item: "diamond"
+item: "clay_ball"
 
 permission:
   enabled: false
@@ -12,7 +12,10 @@ item_configuration:
   display_name: "Backpack"
   lore_empty: "§r§9Empty§r"
   lore_content: "§r§9 {item} §6x{count}§r"
-  display_name_after_use: "§r§f{player}'s backpack"
+  display_name_after_use: "§r§f{player}'s Backpack"
 
 ui_configuration:
-  display_name: "{player}'s backpack"
+  display_name: "{player}'s Backpack"
+
+pack_configuration:
+  pack_name: "BackpackRP.mcpack"

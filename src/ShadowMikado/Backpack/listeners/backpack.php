@@ -27,7 +27,7 @@ class backpack implements Listener
         if ($this->hasBackpackPermission($player) && $this->isBackpack($e->getItem())) {
             $backpack = $e->getItem();
             $bitem = $e->getItem();
-            $menu = InvMenu::create(InvMenu::TYPE_CHEST);
+            $menu = InvMenu::create(InvMenu::TYPE_DOUBLE_CHEST);
 
             $menu->setName(str_replace("{player}", $player->getName(), Main::$config->getNested("ui_configuration.display_name")));
             $menu->setListener(function (InvMenuTransaction $transaction) use ($bitem): InvMenuTransactionResult {
