@@ -2,6 +2,7 @@
 
 namespace ShadowMikado\Backpack\listeners;
 
+use muqsit\customsizedinvmenu\CustomSizedInvMenu;
 use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerItemUseEvent;
 use pocketmine\item\Item;
@@ -27,18 +28,20 @@ class backpack implements Listener
         if ($this->hasBackpackPermission($player) && $this->isBackpack($e->getItem())) {
             $backpack = $e->getItem();
             $bitem = $e->getItem();
-            $menu = InvMenu::create(InvMenu::TYPE_CHEST);
-
+            $menu = CustomSizedInvMenu::create(Main::$config->getNested("ui_configuration.inv_size"));
             $menu->setName(str_replace("{player}", $player->getName(), Main::$config->getNested("ui_configuration.display_name")));
-            $menu->setListener(function (InvMenuTransaction $transaction) use ($bitem): InvMenuTransactionResult {
-                if ($this->isBackpack($transaction->getItemClickedWith())) {
-                    $transaction->getPlayer()->getWorld()->addSound($transaction->getPlayer()->getPosition(), new NoteSound(NoteInstrument::GUITAR(), 0));
-                    $transaction->getPlayer()->sendPopup(Main::$config->getNested("messages.item_disabled"));
-                    return $transaction->discard();
-                } else {
-                    return $transaction->continue();
-                }
-            });
+
+            if (!Main::$config->getNested("item_configuration.can_put_backpack_in_backpack")) {
+                $menu->setListener(function (InvMenuTransaction $transaction) use ($bitem): InvMenuTransactionResult {
+                    if ($this->isBackpack($transaction->getItemClickedWith())) {
+                        $transaction->getPlayer()->getWorld()->addSound($transaction->getPlayer()->getPosition(), new NoteSound(NoteInstrument::GUITAR(), 0));
+                        $transaction->getPlayer()->sendPopup(Main::$config->getNested("messages.item_disabled"));
+                        return $transaction->discard();
+                    } else {
+                        return $transaction->continue();
+                    }
+                });
+            }
 
             $menu->setInventoryCloseListener(function (Player $player, InvMenuInventory $inventory) use ($bitem) {
                 echo $bitem->getCustomName();
