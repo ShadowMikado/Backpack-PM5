@@ -2,8 +2,6 @@
 
 namespace ShadowMikado\Backpack;
 
-use muqsit\customsizedinvmenu\CustomSizedInvMenu;
-use muqsit\invmenu\InvMenuHandler;
 use pocketmine\inventory\CreativeInventory;
 use pocketmine\item\ItemIdentifier;
 use pocketmine\item\StringToItemParser;
@@ -15,6 +13,8 @@ use pocketmine\resourcepacks\ZippedResourcePack;
 use pocketmine\Server;
 use pocketmine\utils\Config;
 use pocketmine\utils\SingletonTrait;
+use ShadowMikado\Backpack\libs\customsizedinvmenu\CustomSizedInvMenu;
+use ShadowMikado\Backpack\libs\invmenu\InvMenuHandler;
 use ShadowMikado\Backpack\listeners\backpack;
 use Symfony\Component\Filesystem\Path;
 
@@ -35,13 +35,11 @@ class Main extends PluginBase
     protected function onLoad(): void
     {
         self::setInstance($this);
-        $this->getLogger()->info("Loading...");
 
     }
 
     protected function onEnable(): void
     {
-        $this->getLogger()->info("Enabling...");
 
         if (!InvMenuHandler::isRegistered()) {
             InvMenuHandler::register($this);
@@ -67,11 +65,6 @@ class Main extends PluginBase
 
         $customsizedinvmenu = new CustomSizedInvMenu($this->getPluginLoader(), $this->getServer(), $this->getDescription(), $this->getDataFolder(), $this->getFile(), $this->resourceProvider);
         $customsizedinvmenu->onEnable();
-    }
-
-    protected function onDisable(): void
-    {
-        $this->getLogger()->info("Disabling...");
     }
 
 }

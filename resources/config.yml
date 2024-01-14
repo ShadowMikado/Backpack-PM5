@@ -2,7 +2,7 @@ item: "clay_ball"
 
 permission:
   enabled: false
-  name: "backpack.use"
+  name: "backpack.use" #here the final permission is backpack.backpack.use
 
 messages:
   item_disabled: "§cThis item cannot be placed in a backpack."

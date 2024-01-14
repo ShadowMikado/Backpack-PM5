@@ -5,6 +5,7 @@ This plugin adds customizable backpack functionality to your PocketMine MP serve
 ## Configuration
 
 The `config.yml` file contains settings for the backpack:
+(permission is now starting with `backpack` + `yourpermissionname`
 
 ```yaml
 item: "clay_ball"

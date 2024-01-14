@@ -2,7 +2,6 @@
 
 namespace ShadowMikado\Backpack\listeners;
 
-use muqsit\customsizedinvmenu\CustomSizedInvMenu;
 use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerItemUseEvent;
 use pocketmine\item\Item;
@@ -12,11 +11,11 @@ use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\nbt\tag\ListTag;
 use pocketmine\player\Player;
 use pocketmine\utils\TextFormat;
-use muqsit\invmenu\{inventory\InvMenuInventory,
-    InvMenu,
-    transaction\InvMenuTransaction,
-    transaction\InvMenuTransactionResult};
 use pocketmine\world\sound\{NoteInstrument, NoteSound};
+use ShadowMikado\Backpack\libs\customsizedinvmenu\CustomSizedInvMenu;
+use ShadowMikado\Backpack\libs\invmenu\{transaction\InvMenuTransactionResult};
+use ShadowMikado\Backpack\libs\invmenu\inventory\InvMenuInventory;
+use ShadowMikado\Backpack\libs\invmenu\transaction\InvMenuTransaction;
 use ShadowMikado\Backpack\Main;
 
 class backpack implements Listener
@@ -32,7 +31,7 @@ class backpack implements Listener
             $menu->setName(str_replace("{player}", $player->getName(), Main::$config->getNested("ui_configuration.display_name")));
 
             if (!Main::$config->getNested("item_configuration.can_put_backpack_in_backpack")) {
-                $menu->setListener(function (InvMenuTransaction $transaction) use ($bitem): InvMenuTransactionResult {
+                $menu->setListener(function (InvMenuTransaction $transaction): InvMenuTransactionResult {
                     if ($this->isBackpack($transaction->getItemClickedWith())) {
                         $transaction->getPlayer()->getWorld()->addSound($transaction->getPlayer()->getPosition(), new NoteSound(NoteInstrument::GUITAR(), 0));
                         $transaction->getPlayer()->sendPopup(Main::$config->getNested("messages.item_disabled"));
@@ -44,7 +43,6 @@ class backpack implements Listener
             }
 
             $menu->setInventoryCloseListener(function (Player $player, InvMenuInventory $inventory) use ($bitem) {
-                echo $bitem->getCustomName();
                 if ($this->isBackpack($bitem)) {
                     $contents = $inventory->getContents(false);
                     $tags = [];
@@ -55,6 +53,7 @@ class backpack implements Listener
                     }
 
                     foreach ($contents as $slot => $item) {
+                        $item->getNamedTag()->setInt("slot", $slot);
                         $tags[] = $item->nbtSerialize($slot);
                         $lores[] = str_replace(["{item}", "{count}"], [$item->getName(), $item->getCount()], Main::$config->getNested("item_configuration.lore_content"));
                     }
@@ -73,19 +72,17 @@ class backpack implements Listener
                 }
             });
 
-            $contents = [];
             $tlist = $backpack->getNamedTag()->getListTag("items");
 
             if (!is_null($tlist)) {
                 foreach ($tlist as $tags) {
                     $item = Item::nbtDeserialize($tags);
-                    $contents[] = $item;
+                    $cloned = clone $item;
+                    $cloned->getNamedTag()->removeTag("slot");
+                    $menu->getInventory()->setItem($item->getNamedTag()->getInt("slot"), $cloned);
                 }
-            } else {
-                $contents[] = VanillaItems::AIR();
             }
 
-            $menu->getInventory()->setContents($contents);
             $menu->send($player);
             $player->getInventory()->setItemInHand(VanillaItems::AIR());
         }
@@ -95,7 +92,7 @@ class backpack implements Listener
     {
         $permissionEnabled = Main::$config->getNested("permission.enabled");
         $permissionName = Main::$config->getNested("permission.name");
-        return $permissionEnabled ? $player->hasPermission($permissionName) : true;
+        return $permissionEnabled ? $player->hasPermission("backpack." . $permissionName) : true;
     }
 
     private function isBackpack(Item $item): bool
